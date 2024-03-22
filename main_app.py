@@ -1,8 +1,8 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, unquote_plus
+import json
 import mimetypes
 from pathlib import Path
-import json
+from urllib.parse import urlparse, unquote_plus
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 
 class HttpGetHandler(BaseHTTPRequestHandler):
@@ -23,7 +23,7 @@ class HttpGetHandler(BaseHTTPRequestHandler):
             case '/contacts':
                 self.send_html("contacts.html")
             case '/message':
-                self.send_html("send_message.html")
+                self.send_html("message.html")
             case _:
                 file_path = Path(url.path[1:])
                 if file_path.exists():
