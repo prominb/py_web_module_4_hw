@@ -1,54 +1,64 @@
+import json
 import mimetypes
-import pathlib
+from pathlib import Path
+from urllib.parse import urlparse, unquote_plus
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import urllib.parse
 
 
-class HttpHandler(BaseHTTPRequestHandler):
+class HttpGetHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        data = self.rfile.read(int(self.headers['Content-Length']))
-        print(data)
-        data_parse = urllib.parse.unquote_plus(data.decode())
-        print(data_parse)
-        data_dict = {key: value for key, value in [el.split('=') for el in data_parse.split('&')]}
-        print(data_dict)
+        # print(f"{self.headers.get('Content-Length') = }")
+        data = self.rfile.read(int(self.headers.get('Content-Length')))
+        self.save_to_json(data)
+        print(f"{unquote_plus(data.decode()) = }")
         self.send_response(302)
         self.send_header('Location', '/')
         self.end_headers()
-
+        
     def do_GET(self):
-        pr_url = urllib.parse.urlparse(self.path)
-        if pr_url.path == '/':
-            self.send_html_file('index.html')
-        elif pr_url.path == '/message':
-            self.send_html_file('message.html')
+        url = urlparse(self.path)
+        match url.path:
+            case '/':
+                self.send_html("index.html")
+            case '/contacts':
+                self.send_html("contacts.html")
+            case '/message':
+                self.send_html("message.html")
+            case _:
+                file_path = Path(url.path[1:])
+                if file_path.exists():
+                    self.send_static(str(file_path))
+                else:
+                    self.send_html("error.html", 404)
+                
+    def send_static(self, static_filename):
+        self.send_response(200)
+        mt = mimetypes.guess_type(self.path)
+        # print(f"{mt = }")
+        if mt:
+            self.send_header('Content-type', mt[0])
         else:
-            if pathlib.Path().joinpath(pr_url.path[1:]).exists():
-                self.send_static()
-            else:
-                self.send_html_file('error.html', 404)
+            self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        with open(static_filename, 'rb') as f:
+            self.wfile.write(f.read())
 
-    def send_html_file(self, filename, status=200):
+    def send_html(self, html_filename, status=200):
         self.send_response(status)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        with open(filename, 'rb') as fd:
-            self.wfile.write(fd.read())
+        with open(html_filename, 'rb') as f:
+            self.wfile.write(f.read())
 
-    def send_static(self):
-        self.send_response(200)
-        mt = mimetypes.guess_type(self.path)
-        if mt:
-            self.send_header("Content-type", mt[0])
-        else:
-            self.send_header("Content-type", 'text/plain')
-        self.end_headers()
-        with open(f'.{self.path}', 'rb') as file:
-            self.wfile.write(file.read())
-
-
-def run(server_class=HTTPServer, handler_class=HttpHandler):
-    server_address = ('', 8001)
+    def save_to_json(self, raw_data):
+        data = unquote_plus(raw_data.decode())
+        dict_data = {key: value for key, value in [el.split("=") for el in data.split("&")]}
+        print(dict_data)
+        with open("data/data.json", "w", encoding="utf-8") as f:
+            json.dump(dict_data, f)
+        
+def run(server_class=HTTPServer, handler_class=HttpGetHandler):
+    server_address = ('', 8000)
     http = server_class(server_address, handler_class)
     try:
         http.serve_forever()
