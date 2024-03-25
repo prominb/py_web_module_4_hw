@@ -15,20 +15,26 @@ HTTP_PORT = 8080
 HTTP_HOST = '0.0.0.0'
 SOCKET_HOST = '127.0.0.1'
 SOCKET_PORT = 5000
+STORAGE_DIR = Path('storage')
+JSON_FILE = 'data.json'
+
+if not STORAGE_DIR.exists():
+    dir_path = Path.cwd() / "storage"
+    dir_path.mkdir()
+    json_data = {}
+    with open(dir_path / JSON_FILE, 'w') as fh:
+        json.dump(json_data, fh)
 
 
 class HttpGetHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
-        # print(f"{self.headers.get('Content-Length') = }")
         data = self.rfile.read(int(self.headers.get('Content-Length')))
 
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client_socket.sendto(data, (SOCKET_HOST, SOCKET_PORT))
         client_socket.close()
 
-        # self.save_to_json(data)
-        # print(f"{unquote_plus(data.decode()) = }")
         self.send_response(302)
         self.send_header('Location', '/')
         self.end_headers()
@@ -38,13 +44,10 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         match url.path:
             case '/':
                 self.send_html("index.html")
-            # case '/contacts':
-                # self.send_html("contacts.html")
             case '/message':
                 self.send_html("message.html")
             case _:
                 file_path = BASE_DIR.joinpath(url.path[1:])
-                print(type(file_path))
                 if file_path.exists():
                     self.send_static(str(file_path))
                 else:
@@ -53,7 +56,6 @@ class HttpGetHandler(BaseHTTPRequestHandler):
     def send_static(self, static_filename, status_code=200):
         self.send_response(status_code)
         mt = mimetypes.guess_type(self.path)
-        # print(f"{mt = }")
         if mt:
             self.send_header('Content-type', mt[0])
         else:
@@ -71,33 +73,27 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         with open(html_filename, 'rb') as f:
             self.wfile.write(f.read())
 
-    # def save_to_json(self, raw_data):
-    #     data = unquote_plus(raw_data.decode())
-    #     dict_data = {key: value for key, value in [el.split("=") for el in data.split("&")]}
-    #     print(dict_data)
-    #     with open("data/data.json", "w", encoding="utf-8") as f:
-    #         json.dump(dict_data, f)
 
 def save_data_from_form(data):
     parse_data = unquote_plus(data.decode())
     try:
         parse_dict = {key: value for key, value in [el.split('=') for el in parse_data.split('&')]}
-        time_stamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        parse_dict['timestamp'] = time_stamp
-        with open('storage/data.json', 'w', encoding='utf-8') as file:
-            json.dump(parse_dict, file, ensure_ascii=False, indent=4)
+        cur_dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        path_to_json = STORAGE_DIR.joinpath(JSON_FILE)
+
+        with open(path_to_json, 'r+', encoding='utf-8') as fh:
+            load_data = json.load(fh)
+            load_data[cur_dt] = parse_dict
+            # fh.seek(0)
+            json.dump(parse_dict, fh, ensure_ascii=False, indent=4)
+
+        # with open(STORAGE_DIR / JSON_FILE, 'a', encoding='utf-8') as file:
+            # json.dump(parse_dict, file, ensure_ascii=False, indent=4)
     except ValueError as err:
         logging.error(err)
     except OSError as err:
         logging.error(err)
-        
-# def run(server_class=HTTPServer, handler_class=HttpGetHandler):
-#     server_address = ('', 8000)
-#     http = server_class(server_address, handler_class)
-#     try:
-#         http.serve_forever()
-#     except KeyboardInterrupt:
-#         http.server_close()
+
 
 def run_socket_server(host, port):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
