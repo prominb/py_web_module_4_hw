@@ -18,13 +18,6 @@ SOCKET_PORT = 5000
 STORAGE_DIR = Path('storage')
 JSON_FILE = 'data.json'
 
-if not STORAGE_DIR.exists():
-    dir_path = Path.cwd() / "storage"
-    dir_path.mkdir()
-    json_data = {}
-    with open(dir_path / JSON_FILE, 'w') as fh:
-        json.dump(json_data, fh)
-
 
 class HttpGetHandler(BaseHTTPRequestHandler):
 
@@ -81,14 +74,25 @@ def save_data_from_form(data):
         cur_dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         path_to_json = STORAGE_DIR.joinpath(JSON_FILE)
 
-        with open(path_to_json, 'r+', encoding='utf-8') as fh:
-            load_data = json.load(fh)
-            load_data[cur_dt] = parse_dict
-            # fh.seek(0)
-            json.dump(parse_dict, fh, ensure_ascii=False, indent=4)
+        if not STORAGE_DIR.exists():
+            dir_path = Path.cwd() / "storage"
+            dir_path.mkdir()
+            json_data = {}
+            with open(path_to_json, 'w', encoding='utf-8') as fh:
+                json_data.update({cur_dt:parse_dict})
+                print(json_data)
+                json.dump(json_data, fh, ensure_ascii=False, indent=4)
+        
+        with open(path_to_json, 'r', encoding='utf-8') as fh2:
+            load_data = json.load(fh2)
+            # print(load_data)
+            # check_instance = isinstance(load_data, dict)
+            # print(check_instance)
+        with open(path_to_json, 'w', encoding='utf-8') as fh3:
+            load_data.update({cur_dt:parse_dict})
+            # print(load_data)
+            json.dump(load_data, fh3, ensure_ascii=False, indent=4)
 
-        # with open(STORAGE_DIR / JSON_FILE, 'a', encoding='utf-8') as file:
-            # json.dump(parse_dict, file, ensure_ascii=False, indent=4)
     except ValueError as err:
         logging.error(err)
     except OSError as err:
