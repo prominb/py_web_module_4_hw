@@ -13,8 +13,11 @@ ENV APP_HOME /app
 WORKDIR $APP_HOME
 COPY . $APP_HOME
 
+# а хто його зна як воно працює
+VOLUME [ "/storage/data.json" ]
+
 # Позначимо порт, де працює застосунок всередині контейнера
-EXPOSE 3000
+EXPOSE 5000
 
 # Запустимо наш застосунок всередині контейнера
 ENTRYPOINT ["python", "main.py"]
