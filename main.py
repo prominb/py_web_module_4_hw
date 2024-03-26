@@ -11,7 +11,7 @@ from urllib.parse import urlparse, unquote_plus
 
 BASE_DIR = Path()
 BUFFER_SIZE = 1024
-HTTP_PORT = 8080
+HTTP_PORT = 3000
 HTTP_HOST = '0.0.0.0'
 SOCKET_HOST = '127.0.0.1'
 SOCKET_PORT = 5000
@@ -85,12 +85,8 @@ def save_data_from_form(data):
         
         with open(path_to_json, 'r', encoding='utf-8') as fh2:
             load_data = json.load(fh2)
-            # print(load_data)
-            # check_instance = isinstance(load_data, dict)
-            # print(check_instance)
         with open(path_to_json, 'w', encoding='utf-8') as fh3:
             load_data.update({cur_dt:parse_dict})
-            # print(load_data)
             json.dump(load_data, fh3, ensure_ascii=False, indent=4)
 
     except ValueError as err:
@@ -126,7 +122,6 @@ def run_http_server(host, port):
 
 
 if __name__ == '__main__':
-    # run()
     logging.basicConfig(level=logging.DEBUG, format='%(threadName)s %(message)s')
     server = Thread(target=run_http_server, args=(HTTP_HOST, HTTP_PORT))
     server.start()
