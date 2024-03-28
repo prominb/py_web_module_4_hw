@@ -1,4 +1,3 @@
-import os
 import json
 import logging
 import mimetypes
@@ -10,13 +9,13 @@ from threading import Thread
 from urllib.parse import urlparse, unquote_plus
 
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path()
 BUFFER_SIZE = 1024
 HTTP_PORT = 3000
 HTTP_HOST = '0.0.0.0'
 SOCKET_HOST = '127.0.0.1'
 SOCKET_PORT = 5000
-STORAGE_DIR = Path(BASE_DIR/'storage')
+STORAGE_DIR = Path('storage')
 JSON_FILE = 'data.json'
 
 
@@ -73,19 +72,22 @@ def save_data_from_form(data):
     try:
         parse_dict = {key: value for key, value in [el.split('=') for el in parse_data.split('&')]}
         cur_dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        path_to_json = Path.joinpath(STORAGE_DIR, JSON_FILE)
-        json_data = {}
+        path_to_json = STORAGE_DIR.joinpath(JSON_FILE)
+
         if not STORAGE_DIR.exists():
-            os.mkdir('storage')
+            dir_path = Path.cwd() / "storage"
+            dir_path.mkdir()
+            json_data = {}
             with open(path_to_json, 'w', encoding='utf-8') as fh:
-                json.dump({cur_dt:parse_dict}, fh, ensure_ascii=False, indent=4)
-        if path_to_json.exists():
-            with open(path_to_json, 'r', encoding='utf-8') as fh2:
-                load_data = json.load(fh2)
-                json_data.update(load_data)
+                json_data.update({cur_dt:parse_dict})
+                print(json_data)
+                json.dump(json_data, fh, ensure_ascii=False, indent=4)
+        
+        with open(path_to_json, 'r', encoding='utf-8') as fh2:
+            load_data = json.load(fh2)
         with open(path_to_json, 'w', encoding='utf-8') as fh3:
-            json_data.update({cur_dt:parse_dict})
-            json.dump(json_data, fh3, ensure_ascii=False, indent=4)
+            load_data.update({cur_dt:parse_dict})
+            json.dump(load_data, fh3, ensure_ascii=False, indent=4)
 
     except ValueError as err:
         logging.error(err)
